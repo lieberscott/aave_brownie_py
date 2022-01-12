@@ -29,9 +29,19 @@ def main():
   amount_dai_to_borrow = (1 / dai_eth_price) * (borrowable_eth * 0.95)
   print(f"We are going to borrow { amount_dai_to_borrow } DAI")
   # Now we will borrow
-  dai_address = config["networks"[network.show_active()]]["dai_token"]
-  borrow_tx = lending_pool.borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
+  dai_address = config["networks"][network.show_active()]["dai_token"]
+  borrow_tx = lending_pool.borrow(dai_address, Web3.toWei(amount_dai_to_borrow, "ether"), 1, 0, account.address, { "from": account })
+  borrow_tx.wait(1)
+  print("We borrowed some DAI")
+  get_borrowable_data(lending_pool, account)
+  repay_all(amount, lending_pool, account)
+  print("You just deposited, borrowed, and repaid with Aave, Brownie, and Chainlink")
 
+def repay_all(amount, lending_pool, account):
+  approve_erc20(Web3.toWei(amount, "ether"), lending_pool, config["networks"][network.show_active()]["dai_token"], account)
+  repay_tx = lending_pool.repay(config["networks"][network.show_active()]["dai_token"], amount, 1, account.address, { "from": account })
+  repay_tx.wait(1)
+  print("Repaid")
 
 def get_asset_price(price_feed_address):
   # ABI
@@ -40,7 +50,7 @@ def get_asset_price(price_feed_address):
   latest_price = dai_eth_price_feed.latestRoundData()[1]
   converted_latest_price = Web3.fromWei(latest_price, "ether")
   print(f"The DAI-ETH price is {converted_latest_price}")
-  return float(latest_price)
+  return float(converted_latest_price)
 
 
 
@@ -83,4 +93,4 @@ def approve_erc20(amount, spender, erc20_address, account):
   tx = erc20.approve(spender, amount, {"from": account})
   tx.wait(1)
   print("Approved")
-  return tx
+  #return tx
